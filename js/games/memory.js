@@ -157,7 +157,7 @@ export function memoryScreen() {
 
     return h(
       'div',
-      { class: 'card' },
+      { class: 'game-stack' },
       resultRow('Moves', String(moves)),
       resultRow('Pairs', `${matched}/${totalPairs}`),
       boardSize(560, grid),

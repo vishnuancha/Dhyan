@@ -2,6 +2,7 @@
 // Three modes (campaign, daily, endless) over a canvas board with drag-to-draw.
 
 import { append, boardSize, button, clear, gameScreen, h } from '../../core/ui.js';
+import { icon } from '../../core/icons.js';
 import { feedback } from '../../core/feedback.js';
 import { tierFor } from '../../core/difficulty.js';
 import { todayString } from '../../core/dates.js';
@@ -276,9 +277,8 @@ export function zipScreen() {
   /* ---------- views ---------- */
 
   function levelLabel(level, locked) {
-    if (locked) return `${level} 🔒`;
-    const stars = progress.stars[level] || 0;
-    return `${level} ${starText(stars)}`.trim();
+    if (locked) return null;
+    return starText(progress.stars[level] || 0);
   }
 
   function menuView() {
@@ -293,6 +293,7 @@ export function zipScreen() {
     for (let level = 1; level <= total; level++) {
       const locked = level > unlocked;
       const isCurrent = level === current && !locked;
+      const stars = levelLabel(level, locked);
       levelButtons.appendChild(
         h(
           'button',
@@ -300,22 +301,27 @@ export function zipScreen() {
             class: `level-btn${isCurrent ? ' level-btn--current' : ''}`,
             type: 'button',
             disabled: locked,
+            'aria-label': locked ? `Level ${level}, locked` : `Level ${level}, ${stars}`,
             onclick: () => {
               currentMode = 'campaign';
               startCampaign(level);
             },
           },
-          levelLabel(level, locked),
+          h('span', {}, String(level)),
+          locked ? icon('lock', 'level-btn__lock') : h('span', { class: 'level-btn__stars' }, stars),
         ),
       );
     }
 
     return h(
       'div',
-      { class: 'card' },
-      h('p', {}, 'Draw one line from 1 through every number in order, filling every cell.'),
-      h('p', { class: 'caption' }, "Bold lines between cells are walls — the path can't cross them. Drag back over your trail to undo a step."),
-      h('hr', { class: 'divider' }),
+      { class: 'game-stack' },
+      h(
+        'div',
+        {},
+        h('p', {}, 'Draw one line from 1 through every number in order, filling every cell.'),
+        h('p', { class: 'caption' }, "Bold lines between cells are walls — the path can't cross them. Drag back over your trail to undo a step."),
+      ),
 
       h(
         'div',
@@ -389,22 +395,33 @@ export function zipScreen() {
   }
 
   function howToPlay() {
-    const dots = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    dots.setAttribute('viewBox', '0 0 64 64');
-    dots.setAttribute('width', '64');
-    dots.setAttribute('height', '64');
-    dots.innerHTML =
-      '<circle cx="12" cy="50" r="5" fill="#8B5CF6"/><circle cx="32" cy="32" r="5" fill="#8B5CF6"/>' +
-      '<circle cx="52" cy="14" r="5" fill="#8B5CF6"/><path d="M12 50 32 32 52 14" stroke="#E84727" stroke-width="5" fill="none" stroke-linecap="round"/>';
+    const connect = svgDiagram(
+      '0 0 72 72',
+      [
+        '<rect x="0" y="0" width="72" height="72" rx="10" fill="#252336"/>',
+        // 3x3 grid lines
+        '<path d="M24 4v64M48 4v64M4 24h64M4 48h64" stroke="#8B5CF6" stroke-width="1.5" opacity="0.35"/>',
+        // the drawn line, 1 -> 2 -> 3 -> 4
+        '<path d="M12 60 12 36 36 36 36 12 60 12" stroke="#E84727" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
+        // circles in visiting order
+        '<circle cx="12" cy="60" r="6" fill="#E84727"/>',
+        '<circle cx="12" cy="36" r="6" fill="#E84727" opacity="0.55"/>',
+        '<circle cx="36" cy="36" r="6" fill="#E84727" opacity="0.55"/>',
+        '<circle cx="36" cy="12" r="6" fill="#E84727" opacity="0.55"/>',
+        '<circle cx="60" cy="12" r="6" fill="#E84727"/>',
+      ],
+    );
 
-    const fill = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    fill.setAttribute('viewBox', '0 0 64 64');
-    fill.setAttribute('width', '64');
-    fill.setAttribute('height', '64');
-    fill.innerHTML =
-      '<rect x="6" y="6" width="52" height="52" rx="8" fill="none" stroke="currentColor" stroke-width="3" opacity="0.4"/>' +
-      '<path d="M12 12h40v40H12z" fill="none"/><path d="M12 12h40v40H12" fill="none"/>' +
-      '<path d="M14 18h36v28H14z" fill="#E84727" opacity="0.25"/><path d="M14 18h36" stroke="#E84727" stroke-width="4"/>';
+    const fill = svgDiagram(
+      '0 0 72 72',
+      [
+        '<rect x="0" y="0" width="72" height="72" rx="10" fill="#252336"/>',
+        '<path d="M18 4v64M36 4v64M54 4v64M4 18h64M4 36h64M4 54h64" stroke="#8B5CF6" stroke-width="1.5" opacity="0.35"/>',
+        // serpentine line covering every cell
+        '<path d="M9 9h54M9 27h54M9 45h54" stroke="#E84727" stroke-width="5" fill="none" stroke-linecap="round"/>',
+        '<path d="M63 9v18M9 27v18M63 45v18" stroke="#E84727" stroke-width="5" fill="none" stroke-linecap="round"/>',
+      ],
+    );
 
     return h(
       'div',
@@ -413,10 +430,20 @@ export function zipScreen() {
       h(
         'div',
         { class: 'how-to' },
-        h('figure', {}, dots, h('figcaption', {}, 'Connect the dots in order')),
+        h('figure', {}, connect, h('figcaption', {}, 'Connect the dots in order')),
         h('figure', {}, fill, h('figcaption', {}, 'Fill every cell')),
       ),
     );
+  }
+
+  function svgDiagram(viewBox, shapes) {
+    const el = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    el.setAttribute('viewBox', viewBox);
+    el.setAttribute('width', '72');
+    el.setAttribute('height', '72');
+    el.setAttribute('aria-hidden', 'true');
+    el.innerHTML = shapes.join('');
+    return el;
   }
 
   function playingView() {
@@ -426,10 +453,7 @@ export function zipScreen() {
     hudTime = h('span', { class: 'value' }, fmtTime(elapsedSec));
     hudStatus = h('span', { class: 'value' }, `${path.length}/${cells} cells · par ${parText}`);
 
-    const wrap = h('div', {
-      class: 'zip-canvas-wrap',
-      style: { maxWidth: 'min(560px, calc(100dvh - 300px))' },
-    });
+    const wrap = h('div', { class: 'zip-canvas-wrap' });
 
     canvas = h('canvas', { class: 'zip-canvas', role: 'img', 'aria-label': `Zip board, ${path.length} of ${cells} cells filled` });
     wrap.appendChild(canvas);
@@ -444,7 +468,7 @@ export function zipScreen() {
 
     return h(
       'div',
-      { class: 'card' },
+      { class: 'game-stack' },
       h('p', { class: 'caption' }, title),
       h(
         'div',
@@ -586,7 +610,13 @@ export function zipScreen() {
     };
 
     canvas.addEventListener('pointerdown', (event) => {
-      canvas.setPointerCapture?.(event.pointerId);
+      // Capture keeps the drag alive if the finger slides off the board. It throws
+      // when the pointer is already gone, which must not abort the tap itself.
+      try {
+        canvas.setPointerCapture?.(event.pointerId);
+      } catch {
+        /* not capturable — the drag still works without capture */
+      }
       const index = cellAt(event);
       if (index !== null && moveTo(index)) finger = index;
       else finger = null;

@@ -262,7 +262,7 @@ export function sudokuScreen() {
 
     return h(
       'div',
-      { class: 'card' },
+      { class: 'game-stack' },
       h(
         'div',
         { class: 'hud-row' },
@@ -272,7 +272,7 @@ export function sudokuScreen() {
         520,
         h(
           'div',
-          { class: 'card' },
+          { class: 'game-stack' },
           board(),
           h('p', { class: hintClass }, hint),
           numberPad(),

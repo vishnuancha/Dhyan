@@ -1,5 +1,16 @@
 *, *::before, *::after { box-sizing: border-box; }
 
+:root {
+  /* Height reserved by the bottom tab bar; 0 once the rail takes over. */
+  --nav-h: 62px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@media (min-width: 840px) {
+  :root { --nav-h: 0px; }
+}
+
 html, body {
   margin: 0;
   padding: 0;
@@ -15,6 +26,7 @@ body {
   line-height: 1.45;
   min-height: 100dvh;
   overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 h1, h2, h3, p, figure { margin: 0; }
@@ -28,6 +40,11 @@ h1, h2, h3, p, figure { margin: 0; }
 }
 
 button, input, select, textarea { font: inherit; color: inherit; }
+
+/* Touch: kill the 300ms delay and double-tap zoom, keep pressed feedback. */
+button, a, label, .switch, [role="button"] { touch-action: manipulation; }
+
+button:active:not(:disabled) { transform: scale(0.985); }
 
 a { color: var(--primary); }
 
@@ -60,7 +77,7 @@ a { color: var(--primary); }
 .view {
   flex: 1;
   min-width: 0;
-  padding-bottom: calc(72px + env(safe-area-inset-bottom));
+  padding-bottom: calc(var(--nav-h) + var(--safe-bottom) + 8px);
 }
 
 .view:focus { outline: none; }
@@ -75,29 +92,43 @@ a { color: var(--primary); }
   background: color-mix(in srgb, var(--surface) 92%, transparent);
   backdrop-filter: blur(12px);
   border-top: 1px solid var(--outline);
-  padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+  padding: 6px 4px calc(6px + var(--safe-bottom));
 }
 
 .nav__item {
   flex: 1 1 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  padding: 6px 2px;
+  gap: 3px;
+  padding: 7px 2px;
   border: 0;
   border-radius: var(--radius-tile);
   background: none;
   color: var(--on-surface-variant);
   font-size: 11px;
+  line-height: 1.1;
   cursor: pointer;
 }
 
 .nav__item svg { width: 22px; height: 22px; fill: currentColor; }
 
+.nav__item span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .nav__item[aria-current="page"] {
   color: var(--on-secondary-container);
   background: var(--secondary-container);
+}
+
+@media (max-width: 359px) {
+  .nav__item { font-size: 10px; }
+  .nav__item svg { width: 20px; height: 20px; }
 }
 
 body.immersive .nav { display: none; }
@@ -139,10 +170,14 @@ body.immersive .view { padding-bottom: 0; }
   width: 100%;
   max-width: 720px;
   margin: 0 auto;
-  padding: 16px 16px 24px;
+  padding: calc(16px + var(--safe-top)) 16px 24px;
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+@media (min-width: 600px) {
+  .tab-screen { padding-top: 24px; }
 }
 
 .tab-header { display: flex; flex-direction: column; gap: 2px; }
@@ -179,6 +214,23 @@ body.immersive .view { padding-bottom: 0; }
   gap: 12px;
 }
 
+/* Plain stacked layout used by the games (no card wrapper, like the app). */
+.game-stack { display: flex; flex-direction: column; gap: 12px; }
+
+/*
+ * Game screens: the redraw target fills the body so a short board can sit in the
+ * middle of a tall phone screen. Auto margins collapse to 0 when content is taller
+ * than the viewport, so nothing ever gets clipped.
+ */
+.screen__body > div {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.screen__body > div > .game-stack { margin-block: auto; }
+
 .board-size {
   width: 100%;
   display: flex;
@@ -194,7 +246,7 @@ body.immersive .view { padding-bottom: 0; }
 .toast {
   position: fixed;
   left: 50%;
-  bottom: calc(84px + env(safe-area-inset-bottom));
+  bottom: calc(var(--nav-h) + var(--safe-bottom) + 80px);
   transform: translate(-50%, 12px);
   z-index: 40;
   max-width: min(88vw, 420px);

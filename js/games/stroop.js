@@ -126,7 +126,7 @@ export function stroopScreen() {
   }
 
   function playing() {
-    const optionList = h('div', { class: 'card' });
+    const optionList = h('div', { class: 'game-stack' });
     options.forEach((option) => {
       optionList.appendChild(button({ label: option.label, block: true, onClick: () => answer(option.label) }));
     });
@@ -135,7 +135,7 @@ export function stroopScreen() {
 
     return h(
       'div',
-      { class: 'card' },
+      { class: 'game-stack' },
       h('div', { class: 'hud-row' }, h('span', { class: 'value' }, `Round ${round}/${params.rounds}`)),
       progressBar({ value: round, total: params.rounds }),
       h('div', { class: 'question', style: { color: ink[1] } }, word),

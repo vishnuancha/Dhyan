@@ -175,14 +175,14 @@ export function mathScreen() {
 
     return h(
       'div',
-      { class: 'card' },
+      { class: 'game-stack' },
       h('div', { class: 'hud-row' }, h('span', { class: 'value' }, `Time: ${secondsLeft}s · Correct: ${correct}`)),
       progressBar({ value: secondsLeft, total: params.totalSeconds, accent: 'var(--game-math)' }),
       boardSize(
         560,
         h(
           'div',
-          { class: 'card' },
+          { class: 'game-stack' },
           h('div', { class: 'question question--gradient' }, question),
           input,
           h(

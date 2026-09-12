@@ -175,7 +175,7 @@ export function sequenceScreen() {
   function showing() {
     return h(
       'div',
-      { class: 'card' },
+      { class: 'game-stack' },
       h('div', { class: 'status' }, `Watch… (${visibleCount}/${sequence.length})`),
       tileGrid(false),
       h('p', { class: 'caption' }, `Round ${sequence.length - 2} · memorize the order`),
@@ -185,7 +185,7 @@ export function sequenceScreen() {
   function input() {
     return h(
       'div',
-      { class: 'card' },
+      { class: 'game-stack' },
       h('div', { class: 'status' }, `Your turn (${entered}/${sequence.length})`),
       tileGrid(true),
     );
