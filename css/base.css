@@ -1,8 +1,9 @@
 *, *::before, *::after { box-sizing: border-box; }
 
 :root {
-  /* Height reserved by the bottom tab bar; 0 once the rail takes over. */
-  --nav-h: 62px;
+  /* Height reserved by the bottom tab bar; 0 once the rail takes over.
+     Must cover the nav's own height so the habits save bar clears it. */
+  --nav-h: 68px;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
