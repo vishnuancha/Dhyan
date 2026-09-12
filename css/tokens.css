@@ -1,0 +1,101 @@
+/* Design tokens ported from the Android app's Material 3 theme (Theme.kt). */
+
+:root {
+  /* Fixed accent palette — Accents in Theme.kt */
+  --violet: #8B5CF6;
+  --indigo: #6366F1;
+  --blue: #3B82F6;
+  --teal: #14B8A6;
+  --green: #22C55E;
+  --amber: #F59E0B;
+  --orange: #F97316;
+  --coral: #F43F5E;
+  --pink: #EC4899;
+  --vermilion: #E84727;
+
+  --game-memory: var(--coral);
+  --game-stroop: var(--blue);
+  --game-math: var(--green);
+  --game-sequence: var(--violet);
+  --game-sudoku: var(--orange);
+  --game-zip: var(--vermilion);
+
+  --hero-gradient: linear-gradient(135deg, var(--violet), var(--pink), var(--orange));
+  --brush-games: linear-gradient(90deg, var(--violet), var(--coral));
+  --brush-meditate: linear-gradient(90deg, var(--teal), var(--violet));
+  --brush-habits: linear-gradient(90deg, var(--teal), var(--green));
+  --brush-stats: linear-gradient(90deg, var(--violet), var(--blue));
+  --brush-settings: linear-gradient(90deg, var(--amber), var(--coral));
+
+  /* Radii — Radii.kt */
+  --radius-card: 16px;
+  --radius-board: 12px;
+  --radius-tile: 12px;
+  --radius-chip: 999px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+
+  /* Dark scheme — darkColorScheme in Theme.kt */
+  --primary: #C4B5FD;
+  --on-primary: #3B0764;
+  --primary-container: #5B21B6;
+  --on-primary-container: #EDE9FE;
+  --secondary: #5EEAD4;
+  --on-secondary: #042F2E;
+  --secondary-container: #134E4A;
+  --on-secondary-container: #CCFBF1;
+  --tertiary: #FDBA74;
+  --on-tertiary: #7C2D12;
+  --tertiary-container: #9A3412;
+  --on-tertiary-container: #FFEDD5;
+  --error: #F87171;
+  --error-container: #7F1D1D;
+  --on-error-container: #FEE2E2;
+  --background: #0F0E17;
+  --surface: #0F0E17;
+  --surface-variant: #252336;
+  --on-surface: #E6E4F0;
+  --on-surface-variant: #B9B5CC;
+  --outline: rgba(230, 228, 240, 0.28);
+  --scrim: rgba(0, 0, 0, 0.6);
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    /* Light scheme — lightColorScheme in Theme.kt */
+    --primary: #7C3AED;
+    --on-primary: #FFFFFF;
+    --primary-container: #EDE9FE;
+    --on-primary-container: #3B0764;
+    --secondary: #0D9488;
+    --on-secondary: #FFFFFF;
+    --secondary-container: #CCFBF1;
+    --on-secondary-container: #042F2E;
+    --tertiary: #F97316;
+    --on-tertiary: #FFFFFF;
+    --tertiary-container: #FFEDD5;
+    --on-tertiary-container: #7C2D12;
+    --error: #DC2626;
+    --error-container: #FEE2E2;
+    --on-error-container: #7F1D1D;
+    --background: #FAF9FF;
+    --surface: #FAF9FF;
+    --surface-variant: #EEEDF7;
+    --on-surface: #1C1B22;
+    --on-surface-variant: #4A4757;
+    --outline: rgba(28, 27, 34, 0.28);
+    --scrim: rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* Tab title gradients — TabBrushes in Components.kt */
+.brush-games { --brush: var(--brush-games); }
+.brush-meditate { --brush: var(--brush-meditate); }
+.brush-habits { --brush: var(--brush-habits); }
+.brush-stats { --brush: var(--brush-stats); }
+.brush-settings { --brush: var(--brush-settings); }
