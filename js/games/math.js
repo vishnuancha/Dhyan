@@ -1,4 +1,7 @@
 // Math Sprint — port of features/games/math/MathViewModel.kt + MathSprintScreen.kt.
+//
+// The play view is built once and updated in place. Rebuilding it per tick would
+// detach the answer field, which closes the mobile keyboard on every second.
 
 import {
   append,
@@ -17,6 +20,12 @@ import { randomInt } from '../core/random.js';
 import { dayIndexFor, saveResult } from '../state/store.js';
 import { back } from '../router.js';
 
+/** Tapping these must not move focus off the answer field, or the keyboard closes. */
+function holdFocus(node) {
+  node.addEventListener('mousedown', (event) => event.preventDefault());
+  return node;
+}
+
 export function mathScreen() {
   const day = dayIndexFor('MATH');
   const params = mathParams(day);
@@ -32,15 +41,35 @@ export function mathScreen() {
   let save = null;
   let ticker = null;
 
+  let statusEl = null;
+  let questionEl = null;
+  let feedbackEl = null;
+  let progressFill = null;
+
   const body = h('div');
   const root = gameScreen({ title: 'Math Sprint', accent: 'var(--game-math)', onBack: () => back('') }, body);
+
   const input = h('input', {
     class: 'field',
     type: 'text',
     inputmode: 'numeric',
+    enterkeyhint: 'done',
     autocomplete: 'off',
+    autocorrect: 'off',
+    spellcheck: 'false',
     'aria-label': 'Answer',
     placeholder: 'Answer',
+  });
+
+  input.addEventListener('input', () => {
+    input.value = input.value.replace(/[^0-9-]/g, '').slice(0, 6);
+  });
+
+  input.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      submit();
+    }
   });
 
   function draw() {
@@ -89,7 +118,7 @@ export function mathScreen() {
     phase = 'playing';
     draw();
     input.value = '';
-    input.focus();
+    focusInput();
 
     if (ticker) clearInterval(ticker);
     ticker = setInterval(tick, 1000);
@@ -104,23 +133,23 @@ export function mathScreen() {
       return;
     }
     secondsLeft -= 1;
-    draw();
+    updateHud();
+  }
+
+  function submit() {
+    answer(input.value);
   }
 
   function answer(raw) {
     if (phase !== 'playing' || secondsLeft <= 0) return;
     const trimmed = String(raw).trim();
-    if (trimmed === '' || trimmed === '-') {
-      message = 'Enter a number first';
-      feedback.wrong();
-      draw();
-      return;
-    }
-    const value = Number.parseInt(trimmed, 10);
+    const value = trimmed === '' || trimmed === '-' ? Number.NaN : Number.parseInt(trimmed, 10);
+
     if (Number.isNaN(value)) {
       message = 'Enter a number first';
       feedback.wrong();
-      draw();
+      updateHud();
+      focusInput();
       return;
     }
 
@@ -136,8 +165,12 @@ export function mathScreen() {
     }
     nextQuestion();
     input.value = '';
-    draw();
-    input.focus();
+    updateHud();
+    focusInput();
+  }
+
+  function focusInput() {
+    if (document.activeElement !== input) input.focus();
   }
 
   function finish() {
@@ -162,36 +195,47 @@ export function mathScreen() {
     return attempted === 0 ? '—' : `${Math.trunc((correct * 100) / attempted)}%`;
   }
 
+  function updateHud() {
+    if (statusEl) statusEl.textContent = `Time: ${secondsLeft}s · Correct: ${correct}`;
+    if (questionEl) questionEl.textContent = question;
+    if (feedbackEl) {
+      feedbackEl.textContent = message;
+      feedbackEl.className = `feedback ${
+        message.startsWith('Correct') ? 'feedback--ok' : message ? 'feedback--bad' : ''
+      }`;
+    }
+    if (progressFill) {
+      const pct = (secondsLeft / Math.max(params.totalSeconds, 1)) * 100;
+      progressFill.style.width = `${Math.min(Math.max(pct, 0), 100)}%`;
+    }
+  }
+
   function playing() {
-    input.oninput = () => {
-      input.value = input.value.replace(/[^0-9-]/g, '').slice(0, 6);
-    };
-    input.onkeydown = (event) => {
-      if (event.key === 'Enter') {
-        event.preventDefault();
-        answer(input.value);
-      }
-    };
+    statusEl = h('span', { class: 'value' }, `Time: ${secondsLeft}s · Correct: ${correct}`);
+    const bar = progressBar({
+      value: secondsLeft,
+      total: params.totalSeconds,
+      accent: 'var(--game-math)',
+    });
+    progressFill = bar.querySelector('.progress__bar');
+    questionEl = h('div', { class: 'question question--gradient' }, question);
+    feedbackEl = h('div', { class: 'feedback' }, message);
 
     return h(
       'div',
       { class: 'game-stack' },
-      h('div', { class: 'hud-row' }, h('span', { class: 'value' }, `Time: ${secondsLeft}s · Correct: ${correct}`)),
-      progressBar({ value: secondsLeft, total: params.totalSeconds, accent: 'var(--game-math)' }),
+      h('div', { class: 'hud-row' }, statusEl),
+      bar,
       boardSize(
         560,
         h(
           'div',
           { class: 'game-stack' },
-          h('div', { class: 'question question--gradient' }, question),
+          questionEl,
           input,
-          h(
-            'div',
-            { class: `feedback ${message.startsWith('Correct') ? 'feedback--ok' : message ? 'feedback--bad' : ''}` },
-            message,
-          ),
-          button({ label: 'Submit', block: true, onClick: () => answer(input.value) }),
-          button({ label: 'Quit', block: true, variant: 'outlined', onClick: () => back('') }),
+          feedbackEl,
+          holdFocus(button({ label: 'Submit', block: true, onClick: submit })),
+          holdFocus(button({ label: 'Quit', block: true, variant: 'outlined', onClick: () => back('') })),
         ),
       ),
     );

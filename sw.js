@@ -19,6 +19,7 @@ const SHELL = [
   './js/core/random.js',
   './js/core/scoring.js',
   './js/core/ui.js',
+  './js/core/viewport.js',
   './js/data/meditation.js',
   './js/data/sudoku-puzzles.js',
   './js/data/zip-campaign.js',
