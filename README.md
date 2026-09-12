@@ -1,5 +1,7 @@
 # Dhyan Web
 
+**Live: https://vishnuancha.github.io/Dhyan/**
+
 The Dhyan brain-training and meditation app, rebuilt as a static website. Six games,
 guided breathing sessions, habit tracking and progress stats — installable as a PWA and
 fully offline after the first visit.
@@ -27,7 +29,7 @@ The site is served straight from the repository root by GitHub Pages:
 
 1. Push to `main`.
 2. Repository → Settings → Pages → Source: `Deploy from a branch`, branch `main`, folder `/`.
-3. The site appears at `https://<owner>.github.io/dhyan-web/`.
+3. The site appears at `https://vishnuancha.github.io/Dhyan/`.
 
 Every path in the app is relative, so it works from a project subpath without changes.
 
