@@ -18,6 +18,11 @@
 .card__row { display: flex; gap: 8px; flex-wrap: wrap; }
 .card__row > .btn { flex: 1 1 120px; }
 
+/* Difficulty picker shown on every game intro. */
+.difficulty-block { display: flex; flex-direction: column; gap: 8px; }
+.difficulty { display: flex; flex-wrap: wrap; gap: 8px; }
+.difficulty > .btn { flex: 1 1 90px; }
+
 .section-title { font-size: 17px; font-weight: 600; margin-top: 4px; }
 
 .divider { height: 1px; background: var(--outline); border: 0; margin: 0; }
@@ -304,7 +309,13 @@
 
 .tile--matched { background: var(--tertiary-container); border-color: transparent; color: var(--on-tertiary-container); }
 .tile--lit { transform: scale(1.04); border-color: transparent; color: #fff; }
-.tile--number { place-items: start; padding: 8px; font-size: 16px; }
+.tile--number { place-items: start; padding: 8px; font-size: 16px; grid-template-rows: auto 1fr; }
+
+/* Sequence Recall: a tap you got right stays filled until the round ends. */
+.tile--entered { border-color: transparent; color: #fff; }
+.tile--correct { border-color: transparent; color: #fff; transform: scale(1.04); }
+.tile--wrong { background: var(--error-container); border-color: transparent; color: var(--on-error-container); }
+.tile__check { align-self: end; justify-self: start; font-size: 13px; opacity: 0.9; }
 
 @media (max-width: 600px) {
   .tile--number { font-size: 15px; padding: 7px; }

@@ -11,9 +11,9 @@ import {
   h,
 } from '../core/ui.js';
 import { feedback } from '../core/feedback.js';
-import { sudokuMistakesAllowed, sudokuPhase, tierFor } from '../core/difficulty.js';
+import { clampLevel, levelName, sudokuMistakesFor, sudokuPhaseFor, tierFor } from '../core/difficulty.js';
 import { sudokuForDifficulty } from '../data/sudoku-puzzles.js';
-import { dayIndexFor, saveResult } from '../state/store.js';
+import { dayIndexFor, gameDifficultyFor, saveResult, setGameDifficulty } from '../state/store.js';
 import { back } from '../router.js';
 
 function boardHint(size, boxRows, boxCols) {
@@ -22,11 +22,22 @@ function boardHint(size, boxRows, boxCols) {
     : 'Fill the grid so every row, column and box contains 1–9.';
 }
 
+function levelBrief(level, mistakesAllowed) {
+  switch (clampLevel(level)) {
+    case 1:
+      return `Easy: 6×6 grid · ${mistakesAllowed} mistakes allowed.`;
+    case 2:
+      return `Medium: 9×9 grid · ${mistakesAllowed} mistakes allowed.`;
+    default:
+      return `Hard: 9×9 grid with most cells blank · ${mistakesAllowed} mistakes allowed.`;
+  }
+}
+
 export function sudokuScreen() {
   const day = dayIndexFor('SUDOKU');
-  const tier = tierFor(day);
-  const phase = sudokuPhase(day);
-  const allowed = sudokuMistakesAllowed(day);
+  let level = clampLevel(gameDifficultyFor('SUDOKU') ?? tierFor(day));
+  const allowed = () => sudokuMistakesFor(level);
+  const puzzlePhase = () => sudokuPhaseFor(level);
 
   let phaseName = 'intro';
   let puzzle = null;
@@ -51,17 +62,29 @@ export function sudokuScreen() {
     else append(body, done());
   }
 
+  function setLevel(next) {
+    level = clampLevel(next);
+    setGameDifficulty('SUDOKU', level);
+    draw();
+  }
+
   function intro() {
+    const size = puzzlePhase() <= 1 ? 6 : 9;
     return gameScaffold({
       title: 'Sudoku',
-      subtitle: boardHint(phase <= 1 ? 6 : 9, puzzle?.boxRows ?? 2, puzzle?.boxCols ?? 3),
-      instructionLines: [`Day ${day} · ${allowed} mistakes allowed.`, 'Tap a cell, then tap a number below.'],
+      subtitle: boardHint(size, size === 6 ? 2 : 3, 3),
+      instructionLines: [
+        levelBrief(level, allowed()),
+        `Day ${day}. Tap a cell, then tap a number below it. Erase clears a cell you filled.`,
+      ],
+      difficulty: level,
+      onDifficultyChange: setLevel,
       onStart: start,
     });
   }
 
   function start() {
-    puzzle = sudokuForDifficulty(phase);
+    puzzle = sudokuForDifficulty(puzzlePhase());
     cells = puzzle.givens.slice();
     selected = -1;
     mistakes = 0;
@@ -78,7 +101,7 @@ export function sudokuScreen() {
   function finish(won) {
     const seconds = Math.floor((Date.now() - startedAt) / 1000);
     const score =
-      tier <= 1
+      level <= 1
         ? won
           ? Math.max(400 - seconds - mistakes * 30, 30)
           : 10
@@ -90,7 +113,7 @@ export function sudokuScreen() {
       score,
       durationMs: Date.now() - startedAt,
       accuracy: won ? 0.9 : 0.2,
-      difficulty: tier,
+      difficulty: level,
     });
     result = { won, seconds, mistakes };
     phaseName = 'done';
@@ -113,7 +136,7 @@ export function sudokuScreen() {
 
     mistakes += 1;
     errorCell = selected;
-    if (mistakes >= allowed) {
+    if (mistakes >= allowed()) {
       finish(false);
       return false;
     }
@@ -266,7 +289,7 @@ export function sudokuScreen() {
       h(
         'div',
         { class: 'hud-row' },
-        h('span', { class: 'value' }, `Mistakes: ${mistakes}/${allowed} · Filled: ${filled}/${total}`),
+        h('span', { class: 'value' }, `Mistakes: ${mistakes}/${allowed()} · Filled: ${filled}/${total}`),
       ),
       boardSize(
         520,

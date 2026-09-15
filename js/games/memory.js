@@ -12,21 +12,23 @@ import {
   resultRow,
 } from '../core/ui.js';
 import { feedback } from '../core/feedback.js';
-import { memoryParams } from '../core/difficulty.js';
+import { clampLevel, levelName, memoryFor, tierFor } from '../core/difficulty.js';
 import { shuffle } from '../core/random.js';
-import { dayIndexFor, saveResult } from '../state/store.js';
+import { dayIndexFor, gameDifficultyFor, saveResult, setGameDifficulty } from '../state/store.js';
 import { back } from '../router.js';
 
 const SYMBOLS = [...'ABCDEFGHIJKLMNOPQRSTUVWXYZ', ...'0123456789'];
 
 export function memoryScreen() {
   const day = dayIndexFor('MEMORY');
-  const params = memoryParams(day);
+  let level = clampLevel(gameDifficultyFor('MEMORY') ?? tierFor(day));
+  const params = () => memoryFor(level);
 
   let phase = 'intro';
   let cards = [];
-  let gridSize = params.gridSize;
+  let gridSize = params().gridSize;
   let totalPairs = (gridSize * gridSize) / 2;
+  let previewMs = params().previewMs;
   let moves = 0;
   let matched = 0;
   let lockBoard = false;
@@ -45,21 +47,41 @@ export function memoryScreen() {
     else append(body, done());
   }
 
+  function setLevel(next) {
+    level = clampLevel(next);
+    setGameDifficulty('MEMORY', level);
+    const levelParams = params();
+    gridSize = levelParams.gridSize;
+    totalPairs = (gridSize * gridSize) / 2;
+    draw();
+  }
+
   function intro() {
+    const levelParams = params();
+    const pairs = (levelParams.gridSize * levelParams.gridSize) / 2;
     return gameScaffold({
       title: 'Memory Match',
       subtitle: `Find all matching pairs. · Day ${day}`,
       instructionLines: [
-        'Flip two cards at a time. Fewer moves and less time = higher score.',
-        `Grid: ${gridSize}x${gridSize} (${totalPairs} pairs).`,
+        h('strong', { class: 'section-title' }, 'How to play'),
+        '1. Tap a card — it flips face up and shows its symbol.',
+        '2. Tap a second card to look for the matching symbol.',
+        '3. A matching pair stays open. A miss flips both cards back, so remember where they were.',
+        '4. Clear every pair to finish. Fewer moves and less time = higher score.',
+        `${levelName(level)}: ${levelParams.gridSize}×${levelParams.gridSize} grid · ${pairs} pairs · ` +
+          `missed cards stay visible ${levelParams.previewMs / 1000}s.`,
       ],
+      difficulty: level,
+      onDifficultyChange: setLevel,
       onStart: start,
     });
   }
 
   function start() {
-    gridSize = params.gridSize;
+    const levelParams = params();
+    gridSize = levelParams.gridSize;
     totalPairs = (gridSize * gridSize) / 2;
+    previewMs = levelParams.previewMs;
     const symbols = SYMBOLS.slice(0, totalPairs);
     cards = shuffle([...symbols, ...symbols]).map((symbol) => ({
       symbol,
@@ -108,7 +130,7 @@ export function memoryScreen() {
           });
           lockBoard = false;
           draw();
-        }, params.previewMs);
+        }, previewMs);
       }
     }
     draw();
@@ -123,7 +145,7 @@ export function memoryScreen() {
       score,
       durationMs: Date.now() - startedAt,
       accuracy,
-      difficulty: params.tier,
+      difficulty: level,
     });
     result = { score, moves, seconds };
     phase = 'done';

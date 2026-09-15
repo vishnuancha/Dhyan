@@ -1,5 +1,6 @@
 // Tiny DOM helpers plus the shared components from core/ui/components/Components.kt.
 
+import { DIFFICULTY_LABELS } from './difficulty.js';
 import { icon } from './icons.js';
 
 export function h(tag, attrs = {}, ...children) {
@@ -153,14 +154,51 @@ export function resultRow(label, value) {
   return h('div', { class: 'hud-row' }, h('span', { class: 'label' }, label), h('span', { class: 'value' }, value));
 }
 
-export function gameScaffold({ title, subtitle, instructionLines = [], startLabel = 'Start', onStart }) {
+export function difficultyPicker({ selected, onSelect, labels = DIFFICULTY_LABELS }) {
+  const row = h('div', { class: 'difficulty', role: 'group', 'aria-label': 'Difficulty' });
+  labels.forEach((label, index) => {
+    const level = index + 1;
+    const active = level === selected;
+    row.appendChild(
+      button({
+        label,
+        variant: active ? 'filled' : 'outlined',
+        onClick: () => onSelect(level),
+        ariaLabel: `${label} difficulty${active ? ', selected' : ''}`,
+      }),
+    );
+  });
+  return row;
+}
+
+export function gameScaffold({
+  title,
+  subtitle,
+  instructionLines = [],
+  startLabel = 'Start',
+  onStart,
+  difficulty = null,
+  onDifficultyChange = null,
+}) {
   return h(
     'div',
     { class: 'card' },
     h('h2', { class: 'card__title' }, title),
     h('p', { class: 'card__note' }, subtitle),
     h('hr', { class: 'divider' }),
-    h('div', { class: 'card' }, ...instructionLines.map((line) => h('p', {}, line))),
+    difficulty && onDifficultyChange
+      ? h(
+          'div',
+          { class: 'difficulty-block' },
+          h('span', { class: 'caption' }, 'Difficulty'),
+          difficultyPicker({ selected: difficulty, onSelect: onDifficultyChange }),
+        )
+      : null,
+    h(
+      'div',
+      { class: 'card' },
+      ...instructionLines.map((line) => (typeof line === 'string' ? h('p', {}, line) : line)),
+    ),
     button({ label: startLabel, block: true, large: true, onClick: onStart }),
   );
 }

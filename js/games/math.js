@@ -15,9 +15,9 @@ import {
   progressBar,
 } from '../core/ui.js';
 import { feedback } from '../core/feedback.js';
-import { mathParams } from '../core/difficulty.js';
-import { randomInt } from '../core/random.js';
-import { dayIndexFor, saveResult } from '../state/store.js';
+import { clampLevel, levelName, mathFor, tierFor } from '../core/difficulty.js';
+import { nextMathProblem } from '../core/math-problems.js';
+import { dayIndexFor, gameDifficultyFor, saveResult, setGameDifficulty } from '../state/store.js';
 import { back } from '../router.js';
 
 /** Tapping these must not move focus off the answer field, or the keyboard closes. */
@@ -26,14 +26,26 @@ function holdFocus(node) {
   return node;
 }
 
+function levelBrief(level) {
+  switch (clampLevel(level)) {
+    case 1:
+      return 'Two-digit + and −, times tables up to 12 × 12, and exact division.';
+    case 2:
+      return 'Three-digit + and −, 2-digit × 1-digit, exact division, and order of operations (a + b × c).';
+    default:
+      return 'Large numbers, 2-digit × 2-digit, percentages, squares and square roots.';
+  }
+}
+
 export function mathScreen() {
   const day = dayIndexFor('MATH');
-  const params = mathParams(day);
+  let level = clampLevel(gameDifficultyFor('MATH') ?? tierFor(day));
+  const params = () => mathFor(level);
 
   let phase = 'intro';
   let question = '';
   let expected = 0;
-  let secondsLeft = params.totalSeconds;
+  let secondsLeft = params().totalSeconds;
   let correct = 0;
   let attempted = 0;
   let message = '';
@@ -79,37 +91,34 @@ export function mathScreen() {
     else append(body, done());
   }
 
+  function setLevel(next) {
+    level = clampLevel(next);
+    setGameDifficulty('MATH', level);
+    draw();
+  }
+
   function intro() {
     return gameScaffold({
       title: 'Math Sprint',
-      subtitle: `Solve as many as you can in ${params.totalSeconds} seconds. · Day ${day}`,
-      instructionLines: ['Addition, subtraction and multiplication. Daily challenge grows with you.'],
+      subtitle: `Solve as many as you can in ${params().totalSeconds} seconds. · Day ${day}`,
+      instructionLines: [
+        levelBrief(level),
+        'Type the answer, then tap Submit. Harder levels pay more XP per correct answer.',
+      ],
+      difficulty: level,
+      onDifficultyChange: setLevel,
       onStart: start,
     });
   }
 
   function nextQuestion() {
-    const a = randomInt(params.rangeMin, params.rangeMax);
-    const b = randomInt(params.rangeMin, params.rangeMax);
-    const roll = randomInt(1, 100);
-    if (roll > 100 - params.multPercent) {
-      const x = randomInt(2, params.multMax);
-      const y = randomInt(2, 9);
-      question = `${x} × ${y}`;
-      expected = x * y;
-    } else if (roll % 2 === 0) {
-      question = `${a} + ${b}`;
-      expected = a + b;
-    } else {
-      const hi = Math.max(a, b);
-      const lo = Math.min(a, b);
-      question = `${hi} − ${lo}`;
-      expected = hi - lo;
-    }
+    const problem = nextMathProblem(params());
+    question = problem.question;
+    expected = problem.answer;
   }
 
   function start() {
-    secondsLeft = params.totalSeconds;
+    secondsLeft = params().totalSeconds;
     correct = 0;
     attempted = 0;
     message = '';
@@ -160,7 +169,7 @@ export function mathScreen() {
       message = 'Correct!';
       feedback.correct();
     } else {
-      message = `Previous answer: was ${was}`;
+      message = `Not quite — it was ${was}`;
       feedback.wrong();
     }
     nextQuestion();
@@ -178,14 +187,14 @@ export function mathScreen() {
       clearInterval(ticker);
       ticker = null;
     }
-    const score = correct * 50;
+    const score = correct * 50 * level;
     const accuracy = attempted === 0 ? 0 : correct / attempted;
     save = saveResult({
       gameType: 'MATH',
       score,
       durationMs: Date.now() - startedAt,
       accuracy,
-      difficulty: params.tier,
+      difficulty: level,
     });
     phase = 'done';
     draw();
@@ -196,7 +205,9 @@ export function mathScreen() {
   }
 
   function updateHud() {
-    if (statusEl) statusEl.textContent = `Time: ${secondsLeft}s · Correct: ${correct}`;
+    if (statusEl) {
+      statusEl.textContent = `Time: ${secondsLeft}s · Correct: ${correct} · ${levelName(level)}`;
+    }
     if (questionEl) questionEl.textContent = question;
     if (feedbackEl) {
       feedbackEl.textContent = message;
@@ -205,16 +216,20 @@ export function mathScreen() {
       }`;
     }
     if (progressFill) {
-      const pct = (secondsLeft / Math.max(params.totalSeconds, 1)) * 100;
+      const pct = (secondsLeft / Math.max(params().totalSeconds, 1)) * 100;
       progressFill.style.width = `${Math.min(Math.max(pct, 0), 100)}%`;
     }
   }
 
   function playing() {
-    statusEl = h('span', { class: 'value' }, `Time: ${secondsLeft}s · Correct: ${correct}`);
+    statusEl = h(
+      'span',
+      { class: 'value' },
+      `Time: ${secondsLeft}s · Correct: ${correct} · ${levelName(level)}`,
+    );
     const bar = progressBar({
       value: secondsLeft,
-      total: params.totalSeconds,
+      total: params().totalSeconds,
       accent: 'var(--game-math)',
     });
     progressFill = bar.querySelector('.progress__bar');

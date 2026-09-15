@@ -21,6 +21,8 @@ const DEFAULT_PREFS = {
   soundOn: true,
   hapticsOn: true,
   audioOn: true,
+  /** Difficulty picked per game; a missing entry means "use the suggested level". */
+  gameDifficulties: {},
 };
 
 const DEFAULT_ZIP = {
@@ -78,6 +80,16 @@ export function updatePrefs(patch) {
   cache.prefs = { ...cache.prefs, ...patch };
   write(KEYS.prefs, cache.prefs);
   return prefs();
+}
+
+/** Difficulty the player chose for a game, or null to fall back to the suggested level. */
+export function gameDifficultyFor(gameType) {
+  const level = (cache.prefs.gameDifficulties || {})[gameType];
+  return Number.isFinite(level) ? level : null;
+}
+
+export function setGameDifficulty(gameType, level) {
+  updatePrefs({ gameDifficulties: { ...(cache.prefs.gameDifficulties || {}), [gameType]: level } });
 }
 
 /* ---------- game results ---------- */

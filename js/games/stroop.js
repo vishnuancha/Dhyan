@@ -12,9 +12,9 @@ import {
   progressBar,
 } from '../core/ui.js';
 import { feedback } from '../core/feedback.js';
-import { stroopParams } from '../core/difficulty.js';
+import { clampLevel, levelName, stroopFor, tierFor } from '../core/difficulty.js';
 import { pick, shuffle } from '../core/random.js';
-import { dayIndexFor, saveResult } from '../state/store.js';
+import { dayIndexFor, gameDifficultyFor, saveResult, setGameDifficulty } from '../state/store.js';
 import { back } from '../router.js';
 
 const PALETTE = [
@@ -26,10 +26,17 @@ const PALETTE = [
   ['ORANGE', '#EF6C00'],
 ];
 
+function levelBrief(level) {
+  const params = stroopFor(level);
+  return `${levelName(level)}: ${params.rounds} rounds · ${params.colorCount} colors · ` +
+    'the word clashes with the ink more often as you go up.';
+}
+
 export function stroopScreen() {
   const day = dayIndexFor('STROOP');
-  const params = stroopParams(day);
-  const palette = PALETTE.slice(0, params.colorCount);
+  let level = clampLevel(gameDifficultyFor('STROOP') ?? tierFor(day));
+  const params = () => stroopFor(level);
+  const palette = () => PALETTE.slice(0, params().colorCount);
 
   let phase = 'intro';
   let round = 0;
@@ -56,15 +63,24 @@ export function stroopScreen() {
     else append(body, done());
   }
 
+  function setLevel(next) {
+    level = clampLevel(next);
+    setGameDifficulty('STROOP', level);
+    draw();
+  }
+
   function intro() {
     return gameScaffold({
       title: 'Stroop Test',
       subtitle: `Tap the INK color, not the word. · Day ${day}`,
-      startLabel: `Start (${params.rounds} rounds)`,
+      startLabel: `Start (${params().rounds} rounds)`,
       instructionLines: [
         'Example: the word RED shown in blue ink → tap BLUE.',
+        levelBrief(level),
         'Score rewards speed and accuracy.',
       ],
+      difficulty: level,
+      onDifficultyChange: setLevel,
       onStart: start,
     });
   }
@@ -81,20 +97,21 @@ export function stroopScreen() {
 
   function nextRound(clearFeedback) {
     if (clearFeedback) lastCorrect = null;
-    if (round >= params.rounds) {
+    if (round >= params().rounds) {
       finish();
       return;
     }
     round += 1;
 
-    ink = pick(palette);
-    let name = pick(palette)[0];
-    if (name === ink[0] && Math.random() < params.mismatchRatio) {
-      name = pick(palette.filter((p) => p[0] !== ink[0]))[0];
+    const colors = palette();
+    ink = pick(colors);
+    let name = pick(colors)[0];
+    if (name === ink[0] && Math.random() < params().mismatchRatio) {
+      name = pick(colors.filter((p) => p[0] !== ink[0]))[0];
     }
     word = name;
     correctLabel = ink[0];
-    options = shuffle(palette.map(([label, color]) => ({ label, color })));
+    options = shuffle(colors.map(([label, color]) => ({ label, color })));
     roundStart = Date.now();
     draw();
   }
@@ -112,13 +129,13 @@ export function stroopScreen() {
 
   function finish() {
     const avg = reactions.length ? Math.round(reactions.reduce((a, b) => a + b, 0) / reactions.length) : 0;
-    const score = Math.max(correctCount * 100 - Math.max(Math.trunc(avg / params.reactionDivisor), 0), 0);
+    const score = Math.max(correctCount * 100 - Math.max(Math.trunc(avg / params().reactionDivisor), 0), 0);
     save = saveResult({
       gameType: 'STROOP',
       score,
       durationMs: Date.now() - startedAt,
-      accuracy: correctCount / params.rounds,
-      difficulty: params.tier,
+      accuracy: correctCount / params().rounds,
+      difficulty: level,
     });
     result = { score, correct: correctCount, avg };
     phase = 'done';
@@ -136,8 +153,8 @@ export function stroopScreen() {
     return h(
       'div',
       { class: 'game-stack' },
-      h('div', { class: 'hud-row' }, h('span', { class: 'value' }, `Round ${round}/${params.rounds}`)),
-      progressBar({ value: round, total: params.rounds }),
+      h('div', { class: 'hud-row' }, h('span', { class: 'value' }, `Round ${round}/${params().rounds}`)),
+      progressBar({ value: round, total: params().rounds }),
       h('div', { class: 'question', style: { color: ink[1] } }, word),
       h('p', { class: 'caption', style: { textAlign: 'center' } }, 'Tap the ink color'),
       boardSize(480, optionList),
@@ -154,7 +171,7 @@ export function stroopScreen() {
       title: 'Stroop complete',
       rows: [
         ['Score', String(result.score)],
-        ['Correct', `${result.correct}/${params.rounds}`],
+        ['Correct', `${result.correct}/${params().rounds}`],
         ['Avg reaction', `${result.avg}ms`],
         ['XP earned', `+${save.xp}`],
       ],

@@ -1,7 +1,7 @@
 // Offline support. Shell assets are precached; anything else is cached on first use,
 // including the meditation audio when it is played.
 
-const CACHE = 'dhyan-v1';
+const CACHE = 'dhyan-v2';
 
 const SHELL = [
   './',
@@ -16,6 +16,7 @@ const SHELL = [
   './js/core/difficulty.js',
   './js/core/feedback.js',
   './js/core/icons.js',
+  './js/core/math-problems.js',
   './js/core/random.js',
   './js/core/scoring.js',
   './js/core/ui.js',

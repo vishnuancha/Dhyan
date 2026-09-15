@@ -33,15 +33,16 @@ const EASY_9X9 = [
   },
 ].map(parse);
 
-function relabel(puzzle, map) {
-  return {
-    ...puzzle,
-    givens: puzzle.givens.map((v) => (v === 0 ? 0 : map(v))),
-    solution: puzzle.solution.map(map),
-  };
-}
-
-const HARD_9X9 = [relabel(EASY_9X9[0], (v) => 10 - v)];
+// Same solution as EASY_9X9 but thinned to 28 givens — verified to stay unique.
+const HARD_9X9 = [
+  {
+    size: 9,
+    boxRows: 3,
+    boxCols: 3,
+    givens: ['034000000', '602005340', '090300000', '050060000', '020850001', '700024006', '960000200', '007000005', '005080109'],
+    solution: ['534678912', '672195348', '198342567', '859761423', '426853791', '713924856', '961537284', '287419635', '345286179'],
+  },
+].map(parse);
 
 export function sudokuForDifficulty(difficulty) {
   if (difficulty <= 1) return EASY_6X6[Math.floor(Math.random() * EASY_6X6.length)];
